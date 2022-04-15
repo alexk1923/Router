@@ -49,6 +49,11 @@ typedef struct {
 	int interface;
 } packet;
 
+typedef struct {
+	packet *pck;
+	struct route_table_entry *LPM_route_entry;
+} extended_packet;
+
 /* Ethernet ARP packet from RFC 826 */
 struct arp_header {
 	uint16_t htype;   /* Format of hardware address */
