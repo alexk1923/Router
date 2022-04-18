@@ -407,6 +407,16 @@ void icmp_err_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip
 }
 
 
+void ip_checksumRFC1642(struct iphdr *ip_hdr) {
+
+	printf("!!!!!!!!!!!!!!!!!!!!!!!RFC1642!!!!!!!!!!!!!!!");
+
+	u_int16_t old_checksum = ip_hdr->check;
+	u_int16_t new_checksum = ~(~old_checksum + ~(ip_hdr->ttl + 1 ) + ip_hdr->ttl) - 1;
+
+	ip_hdr->check = new_checksum;
+}
+
 int main(int argc, char *argv[])
 {
 	packet m;
@@ -487,8 +497,8 @@ int main(int argc, char *argv[])
 					new_icmp_hdr.type = ICMP_ECHOREPLY;
 					new_icmp_hdr.checksum = 0;
 					new_icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
-					new_icmp_hdr.un.echo.id = icmp_hdr->un.echo.id;
-					new_icmp_hdr.un.echo.sequence = icmp_hdr->un.echo.sequence;
+					// new_icmp_hdr.un.echo.id = icmp_hdr->un.echo.id;
+					// new_icmp_hdr.un.echo.sequence = icmp_hdr->un.echo.sequence;
 
 					icmp_echo_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), new_icmp_hdr);
 					continue;
@@ -517,6 +527,7 @@ int main(int argc, char *argv[])
 				continue;
 			} else {
 				ip_hdr->ttl--;
+				ip_checksumRFC1642(ip_hdr);
 			}
 
 			/******** Cautare in tabela de rutare ********/
@@ -541,17 +552,17 @@ int main(int argc, char *argv[])
 
 				icmp_err_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), icmp_hdr);
 				continue;
-				
 			}
+
 			printf("LPM Router: ");
 			PRINT(LPM_router->next_hop);
 
 			printf("Interfata LPM Router: ");
 			printf("%d", LPM_router->interface);
 
-			/******** Actualizare checksum ********/
-			ip_hdr->check = 0;
-			ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
+			// /******** Actualizare checksum ********/
+			// ip_hdr->check = 0;
+			// ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
 
 			/******** Rescriere L2 ********/
 
