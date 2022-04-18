@@ -16,7 +16,7 @@ void PRINT(uint32_t addr) {
         octet[i] = ( ipAddress >> (i*8) ) & 0xFF;
     }
     printf("%d.%d.%d.%d ",octet[0],octet[1],octet[2],octet[3]);    
-	printf("\n");
+	// printf("\n");
 }
 
 
@@ -48,35 +48,209 @@ int compare_MAC(uint8_t *addr1, uint8_t *addr2) {
 	return 1;
 }
 
-struct route_table_entry* LPM(uint32_t dest_ip, struct route_table_entry* rtable, int rtable_len) {
-	int found = -1;
-	int max_mask = 0;
-	for(int i = 0; i < rtable_len; i++) {
-		if((dest_ip & rtable[i].mask) == rtable[i].prefix) {
-			if(ntohl(rtable[i].mask) > ntohl(max_mask)) {
-				max_mask = rtable[i].mask;
-				found = i;
-			}
-		}
-	}
 
+
+int binarySearch(struct route_table_entry* rtable, uint32_t searched_ip, int left, int right)
+
+{
+    if (left <= right) {
+        int mid = left + (right - left) / 2;
+        if ((searched_ip & rtable[mid].mask) == rtable[mid].prefix) {
+			// PRINT((searched_ip & rtable[mid].mask));
+			// PRINT(rtable[mid].prefix);
+			int found_max_mask = 0;
+			int final_pos = mid + 1;
+			printf("AAAAAAAAAAAAAAAA RUTAR:\n\n");
+			PRINT(rtable[mid].prefix);
+			PRINT(rtable[mid].next_hop);
+			PRINT(rtable[mid].mask);
+			printf(" %d\n", rtable[mid].interface);
+
+			int last_correct = mid;
+			while(found_max_mask == 0) {
+				// printf("lalalal");
+				if((searched_ip & rtable[final_pos].mask) == rtable[final_pos].prefix) {
+					last_correct = final_pos;
+					
+				} else {
+					if(rtable[final_pos].mask == rtable[last_correct].mask) {
+						found_max_mask = 1;
+					}
+				}
+				final_pos++;
+			}
+			printf("BBBBBBBBBB RUTAR:\n\n");
+			PRINT(rtable[last_correct].prefix);
+			PRINT(rtable[last_correct].next_hop);
+			PRINT(rtable[last_correct].mask);
+			return last_correct;
+		}
+        
+		
+        if (ntohl(searched_ip & rtable[mid].mask) > ntohl(rtable[mid].prefix)) 
+            return binarySearch(rtable, searched_ip, mid + 1, right);
+ 
+        return binarySearch(rtable, searched_ip, left, mid - 1);
+    }
+ 
+    // We reach here when element is not
+    // present in array
+    return -1;
+}
+
+
+struct route_table_entry* LPM(uint32_t dest_ip, struct route_table_entry* rtable, int rtable_len) {
+	// int found = -1;
+	// int max_mask = 0;
+	// for(int i = 0; i < rtable_len; i++) {
+	// 	if((dest_ip & rtable[i].mask) == rtable[i].prefix) {
+	// 		if(ntohl(rtable[i].mask) > ntohl(max_mask)) {
+	// 			max_mask = rtable[i].mask;
+	// 			found = i;
+	// 		}
+	// 	}
+	// }
+
+	// if(found == -1) {
+	// 	return NULL;
+	// }
+
+
+	// printf("Pentru adresa destinatie IP: ");
+	// PRINT(dest_ip);
+	// printf("\nAplicand masca, rezulta:");
+	// PRINT((dest_ip & rtable[found].mask));
+
+	// printf("\n a fost egala cu prefixul:");
+	// PRINT(rtable[found].prefix);
+	// printf("****END OF LPM*******");
+
+	int left = 0;
+	int right = rtable_len - 1;
+	int found = -1;
+	printf("left:%d\n", left);
+	printf("right:%d\n", right);
+	printf("Dest IP:\n");
+	PRINT(dest_ip);
+	 while (left <= right && found == -1) {
+        int mid = left + (right - left) / 2;
+				if(mid == 2) {
+			printf("Am ajuns la 2");
+		}
+				if(mid == 1) {
+			printf("Am ajuns la 1");
+		}
+			printf("Mid = %d\n", mid);
+
+			PRINT(rtable[mid].prefix);
+			PRINT(rtable[mid].next_hop);
+			PRINT(rtable[mid].mask);
+
+			PRINT((dest_ip & rtable[mid].mask));
+			PRINT(rtable[mid].prefix);
+		
+        if ((dest_ip & rtable[mid].mask) == rtable[mid].prefix) {
+			PRINT((dest_ip & rtable[mid].mask));
+			PRINT(rtable[mid].prefix);
+			int found_max_mask = 0;
+			int final_pos = mid + 1;
+			// printf("AAAAAAAAAAAAAAAA RUTAR:\n\n");
+			// PRINT(rtable[mid].prefix);
+			// PRINT(rtable[mid].next_hop);
+			// PRINT(rtable[mid].mask);
+			// printf(" %d\n", rtable[mid].interface);
+
+			int last_correct = mid;
+
+			int curr_pos = mid + 1;
+			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
+				printf("LA");
+				
+				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
+					printf("Caz speical nr 0\n");
+					last_correct = curr_pos;
+					PRINT(rtable[curr_pos].prefix);
+					PRINT(rtable[curr_pos].next_hop);
+					PRINT(rtable[curr_pos].mask);
+					PRINT((dest_ip & rtable[curr_pos].mask));
+					PRINT(rtable[curr_pos].prefix);
+					// break;
+				}
+				curr_pos++;
+			}
+			// while(found_max_mask == 0) {
+			// 	// printf("lalalal");
+			// 	if((dest_ip & rtable[final_pos].mask) == rtable[final_pos].prefix) {
+			// 		last_correct = final_pos;
+					
+			// 	} else {
+			// 		if(rtable[final_pos].mask == rtable[last_correct].mask) {
+			// 			found_max_mask = 1;
+			// 		}
+			// 	}
+			// 	final_pos++;
+			// }
+			// printf("BBBBBBBBBB RUTAR:\n\n");
+			// PRINT(rtable[last_correct].prefix);
+			// PRINT(rtable[last_correct].next_hop);
+			// PRINT(rtable[last_correct].mask);
+			found = last_correct;
+			break;
+			printf(" found = %d", found);
+		}
+            
+        if (ntohl(dest_ip & rtable[mid].mask) > ntohl(rtable[mid].prefix)) {
+			int curr_pos = mid + 1;
+			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
+				
+				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
+					printf("Caz speical nr 1\n");
+					found = curr_pos;
+					PRINT(rtable[curr_pos].prefix);
+					PRINT(rtable[curr_pos].next_hop);
+					PRINT(rtable[curr_pos].mask);
+					PRINT((dest_ip & rtable[curr_pos].mask));
+					PRINT(rtable[curr_pos].prefix);
+					// break;
+				}
+				curr_pos++;
+			}
+            left = mid + 1;
+		} else {
+			
+			int curr_pos = mid + 1;
+			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
+				
+				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
+					printf("Caz speical nr 2\n");
+					found = curr_pos;
+					PRINT(rtable[curr_pos].prefix);
+					PRINT(rtable[curr_pos].next_hop);
+					PRINT(rtable[curr_pos].mask);
+					PRINT((dest_ip & rtable[curr_pos].mask));
+					PRINT(rtable[curr_pos].prefix);
+					// break;
+				}
+				curr_pos++;
+			}
+
+			right = mid - 1;
+		}
+    }
+
+	// int found = binarySearch(rtable, dest_ip, 0, rtable_len - 1);
+	printf(" found = %d", found);
+	fflush(stdout);
 	if(found == -1) {
 		return NULL;
 	}
-
-
-	printf("Pentru adresa destinatie IP: ");
-	PRINT(dest_ip);
-	printf("\nAplicand masca, rezulta:");
-	PRINT((dest_ip & rtable[found].mask));
-
-	printf("\n a fost egala cu prefixul:");
-	PRINT(rtable[found].prefix);
-	printf("****END OF LPM*******");
-
-
+	printf("--------------------FOUND = %d ----------------", found);
 	return &rtable[found];
 }
+
+
+
+
 
 void get_mac_ip(uint32_t ip, uint8_t *mac)
 {
@@ -96,7 +270,7 @@ void search_ip_ARP(struct arp_entry *arp_table, uint32_t ip, uint8_t *mac){
 int search_dynamic_ip_ARP(struct arp_entry *arp_table, int arp_table_len, uint32_t ip, uint8_t *mac) {
 	for(int i = 0; i < arp_table_len; i++) {
 		if(arp_table[i].ip == ip) {
-			printf("AM GASITTTTTT CV IN SEARCH DYNAMIC");
+			// printf("AM GASITTTTTT CV IN SEARCH DYNAMIC");
 			memcpy(mac, &arp_table[i].mac, 6);
 			return 1;
 		}
@@ -234,12 +408,11 @@ struct route_table_entry *rtable, int rtable_len) {
 			get_interface_mac(LPM_route_entry->interface, router_mac);
 
 			printf("Mac-ul routerului:\n");
-			PRINT2(router_mac);
+			// PRINT2(router_mac);
 
 			memcpy(eth_hdr->ether_shost, router_mac , 6);
 
-			printf("Source host pentru ethernet inlocuit cu mac-ul routerului:\n");
-			PRINT2(eth_hdr->ether_shost);
+			// PRINT2(eth_hdr->ether_shost);
 
 			// punem destinatia pentru pachet
 			memcpy(eth_hdr->ether_dhost, arp_table[i].mac, 6);
@@ -409,12 +582,34 @@ void icmp_err_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip
 
 void ip_checksumRFC1642(struct iphdr *ip_hdr) {
 
-	printf("!!!!!!!!!!!!!!!!!!!!!!!RFC1642!!!!!!!!!!!!!!!");
-
 	u_int16_t old_checksum = ip_hdr->check;
 	u_int16_t new_checksum = ~(~old_checksum + ~(ip_hdr->ttl + 1 ) + ip_hdr->ttl) - 1;
 
 	ip_hdr->check = new_checksum;
+}
+
+
+int cmpfunc (const void * a, const void * b) {
+	struct route_table_entry a_entry = *(struct route_table_entry *)a;
+	struct route_table_entry b_entry = *(struct route_table_entry *)b;
+
+	int compare = ntohl(a_entry.prefix) - ntohl(b_entry.prefix);
+	if(compare != 0) {
+		return compare;
+	} else {
+		compare = ntohl(a_entry.mask) - ntohl(b_entry.mask);
+		return compare;
+	}
+}
+
+
+
+void update_send_packet(packet m){
+	packet *new_p = malloc(sizeof(packet));
+	// verific daca adresa ip a next hope-ului exista in ARP cache
+	memcpy(new_p, &m, sizeof(packet));
+	send_packet(new_p);
+	
 }
 
 int main(int argc, char *argv[])
@@ -429,6 +624,17 @@ int main(int argc, char *argv[])
 	DIE(rtable == NULL, "memory");
 
 	int rtable_len = read_rtable(argv[1], rtable);
+
+	qsort(rtable, rtable_len, sizeof(struct route_table_entry), cmpfunc);
+
+	for(int i = 0; i < rtable_len; i++) {
+		PRINT(rtable[i].prefix);
+		PRINT(rtable[i].next_hop);
+		PRINT(rtable[i].mask);
+		printf(" %d\n", rtable[i].interface);
+	}
+
+
 
 	struct arp_entry *arp_table = malloc(sizeof(struct arp_entry) * 100);
 	int arp_table_len = parse_arp_table("./arp_table.txt", arp_table);
@@ -445,9 +651,9 @@ int main(int argc, char *argv[])
 		DIE(rc < 0, "get_packet");
 		/* TODO */
 		
-		print_arp_table(arp_table, arp_table_len);
+		// print_arp_table(arp_table, arp_table_len);
 
-		print_packet_info(m);
+		// print_packet_info(m);
 		/**************** Forwarding ****************/
 
 		/******** Extragem ethernet header ********/
@@ -461,13 +667,17 @@ int main(int argc, char *argv[])
 		PRINT2(packet_interface_mac);
 
 
+
+
+		/******** Daca e protocol IPv4 ********/
+		if(ntohs(eth->ether_type) == ETHERTYPE_IP) {
 		if(!compare_MAC(eth->ether_dhost, broadcast_addr) && !compare_MAC(eth->ether_dhost, packet_interface_mac)) {
+			PRINT2(eth->ether_dhost);
+			PRINT2(broadcast_addr);
 			printf("Invalid L2\n");
 			continue;
 		}
 
-		/******** Daca e protocol IPv4 ********/
-		if(ntohs(eth->ether_type) == ETHERTYPE_IP) {
 			printf("Protocol IPv4\n");
 			/******** Extragem IP header ********/
 			struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
@@ -527,7 +737,7 @@ int main(int argc, char *argv[])
 				continue;
 			} else {
 				ip_hdr->ttl--;
-				ip_checksumRFC1642(ip_hdr);
+				// ip_checksumRFC1642(ip_hdr);
 			}
 
 			/******** Cautare in tabela de rutare ********/
@@ -554,50 +764,61 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
+			// update_send_packet();
+
 			printf("LPM Router: ");
 			PRINT(LPM_router->next_hop);
 
 			printf("Interfata LPM Router: ");
 			printf("%d", LPM_router->interface);
 
-			// /******** Actualizare checksum ********/
-			// ip_hdr->check = 0;
-			// ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
+			/******** Actualizare checksum ********/
+			ip_hdr->check = 0;
+			ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
 
 			/******** Rescriere L2 ********/
 
 			// rescriu adresa destinatie ca fiind adresa MAC a next hope-ului routerului gasit in tabela
-			uint8_t *next_hop_mac = malloc(sizeof(ETH_ALEN));
+			uint8_t next_hop_mac[ETH_ALEN];
 			// verific daca adresa ip a next hope-ului exista in ARP cache
 			if(search_dynamic_ip_ARP(arp_table, arp_table_len, LPM_router->next_hop, next_hop_mac) == 1) {
 
 			// rescriu adresa sursa ca fiind adresa MAC a interfetei routerului gasit din tabela
-			uint8_t *router_mac = malloc(sizeof(ETH_ALEN));
-			get_interface_mac(LPM_router->interface, router_mac);
+			// uint8_t *router_mac = malloc(sizeof(ETH_ALEN));
+			get_interface_mac(LPM_router->interface, eth->ether_shost);
 
-			printf("Mac-ul routerului:\n");
-			PRINT2(router_mac);
+			// printf("Mac-ul routerului:\n");
+			// PRINT2(router_mac);
 
-			memcpy(eth->ether_shost, router_mac , 6);
+			// memcpy(eth->ether_shost, router_mac , 6);
 
-			printf("Source host pentru ethernet inlocuit cu mac-ul routerului:\n");
-			PRINT2(eth->ether_shost);
+			// printf("Source host pentru ethernet inlocuit cu mac-ul routerului:\n");
+			// PRINT2(eth->ether_shost);
 
 				// daca exista
-				printf("Adresa IP exista in cache ARP\n");
-				printf("Mac-ul next hop-ului:\n");
-				PRINT2(next_hop_mac);
+				// printf("Adresa IP exista in cache ARP\n");
+				// printf("Mac-ul next hop-ului:\n");
+				// PRINT2(next_hop_mac);
 
 				// inlocuim destinatia din Ethernet
 				memcpy(eth->ether_dhost, next_hop_mac, 6);
 
-				printf("Destination host pentru ethernet inlocuit cu mac-ul next hope-ului:\n");
-				PRINT2(eth->ether_dhost);
+				// printf("Destination host pentru ethernet inlocuit cu mac-ul next hope-ului:\n");
+				// PRINT2(eth->ether_dhost);
 
 				m.interface = LPM_router->interface;
+				// printf("Sending package from: \n");
+				// PRINT(ip_hdr->saddr);
+				// PRINT2(eth->ether_shost);
+				// printf(" to:\n");
+				// PRINT(ip_hdr->daddr);
+				// PRINT2(eth->ether_dhost);
+				// printf(" on interface: %d", m.interface);
+				// update_send_packet(m);
 				send_packet(&m);
 				continue;
 			} else {
+				continue;
 				// daca intrarea nu exista
 				printf("TREBUIE SA FAC UN REQUEST PT CA INTRAREA NU EXISTA");
 				print_arp_table(arp_table, arp_table_len);
@@ -643,16 +864,17 @@ int main(int argc, char *argv[])
 		}
 
 		// Daca e protocol ARP
-		else if (ntohs(eth->ether_type) == ETHERTYPE_ARP) {
+		
+		/*else if (ntohs(eth->ether_type) == ETHERTYPE_ARP) {
 			printf("Protocol ARP\n");
 			continue;
 			// Adaugare ARP reply in cache-ul local
-			/* Daca e un REPLY */
+			// Daca e un REPLY 
 			struct arp_header* arp_hdr = (struct arp_header*) (m.payload + sizeof(struct ether_header));
 			if(arp_hdr->op == htons(2)) {
 				printf("++++++++Am primit un REPLY+++++++\n");
 
-				/* Adaugare in cache (trebuie facut si in caz de reply, deoarece host-urile nu adauga implicit in cache	)*/
+				// Adaugare in cache (trebuie facut si in caz de reply, deoarece host-urile nu adauga implicit in cache	)
 				struct arp_entry *arp_new_entry = malloc(sizeof(struct arp_entry));
 				DIE(arp_new_entry == NULL, "memory");
 				// Setam adresa IP a routerului care ne-a furnizat MAC-ul lui, datorita unei cereri anterioare
@@ -669,7 +891,7 @@ int main(int argc, char *argv[])
 			}
 
 
-			/* Daca e un REQUEST */
+			// Daca e un REQUEST
 			if(arp_hdr->op == htons(1)) {
 				printf("++++++++Am primit un REQUEST+++++++\n");
 				printf("Inainte de schimbari pt source:\n");
@@ -706,7 +928,7 @@ int main(int argc, char *argv[])
 				print_eth_hdr(eth_hdr);
 				print_arp_hdr(arp_hdr);
 				
-				/* Adaugare in cache */
+				// Adaugare in cache
 				struct arp_entry *arp_new_entry = malloc(sizeof(struct arp_entry));
 				DIE(arp_new_entry == NULL, "memory");
 				// Setam adresa IP a routerului care ne-a furnizat MAC-ul lui, datorita unei cereri anterioare
@@ -720,7 +942,7 @@ int main(int argc, char *argv[])
 			}
 			
 			
-		}
+		}*/
 		
 	}
 	free(arp_table);
