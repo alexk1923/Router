@@ -347,7 +347,36 @@ void icmp_error(struct ether_header *eth_hdr,
 }
 
 
-void icmp_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip_daddr, uint32_t ip_saddr) {
+void icmp_echo_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip_daddr, uint32_t ip_saddr, struct icmphdr new_icmp_hdr) {
+	packet *new_p = malloc(sizeof(packet));
+	memcpy(new_p, &m, sizeof(packet));
+
+	struct iphdr *ip_hdr = (struct iphdr *)(new_p->payload + sizeof(struct ether_header));
+	struct ether_header *eth_hdr = (struct ether_header *) new_p->payload;
+	struct icmphdr *icmp_hdr = (struct icmphdr *)(new_p->payload + sizeof(struct ether_header) + sizeof(struct iphdr));
+
+	memcpy(eth_hdr->ether_dhost, dest_mac, 6);
+	memcpy(eth_hdr->ether_shost, source_mac, 6);
+
+	ip_hdr->daddr = ip_daddr;
+	ip_hdr->saddr = ip_saddr;
+
+	ip_hdr->protocol = IPPROTO_ICMP;
+	ip_hdr->tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr));
+
+	
+	ip_hdr->protocol = IPPROTO_ICMP;
+	ip_hdr->tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr));
+
+	memcpy(icmp_hdr, &new_icmp_hdr, sizeof(struct icmphdr));
+	
+	new_p->len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
+	send_packet(new_p);
+
+}
+
+
+void icmp_err_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip_daddr, uint32_t ip_saddr, struct icmphdr new_icmp_hdr) {
 	packet *new_p = malloc(sizeof(packet));
 	memcpy(new_p, &m, sizeof(packet));
 
@@ -359,49 +388,21 @@ void icmp_send(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip_dad
 	memcpy(eth_hdr->ether_dhost, dest_mac, 6);
 	memcpy(eth_hdr->ether_shost, source_mac, 6);
 
-	//struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
 	ip_hdr->daddr = ip_daddr;
 	ip_hdr->saddr = ip_saddr;
 
 
-
-	// void *after_icmp = malloc(64);
-	// memcpy(after_icmp, (s.payload + sizeof(struct ether_header) + sizeof(struct iphdr)), 64);
-	
-
-	// struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-	//m.len = sizeof(struct ether_header) + sizeof(struct iphdr) + 64;
+	void *after_ip = malloc(64);
+	memcpy(after_ip, (new_p->payload + sizeof(struct ether_header) + sizeof(struct iphdr)), 64);
 	
 	ip_hdr->protocol = IPPROTO_ICMP;
 	ip_hdr->tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr));
-	ip_hdr->ttl = 64;
 
-	struct icmphdr icmp_hdr2;
-	memset(&icmp_hdr2, 0, sizeof(struct icmphdr));
-	icmp_hdr2.code = 0;	
-	icmp_hdr2.type = ICMP_DEST_UNREACH;
-	
-
-	// PRINT3(icmp_hdr.checksum);
-	
-	icmp_hdr2.checksum = 0;
-	icmp_hdr2.checksum = icmp_checksum((uint16_t *)&icmp_hdr2, sizeof(struct icmphdr));
-	
-	memcpy(icmp_hdr, &icmp_hdr2, sizeof(struct icmphdr));
-
-
-	// icmp_hdr2->checksum = icmp_checksum((uint16_t *)icmp_hdr2, sizeof(struct icmphdr));
-	// memcpy((m.payload + sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr)), after_icmp, 64);
-
-
-	// struct icmphdr *icmp_hdr2 = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-
-	// icmp_hdr2->checksum = icmp_checksum((uint16_t *)icmp_hdr2, sizeof(struct icmphdr));
-
+	memcpy(icmp_hdr, &new_icmp_hdr, sizeof(struct icmphdr));
+	memcpy((new_p->payload + sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr)), after_ip, 64);
 	
 	printf("AAAAAAAAAAAAAA MY CHECKSUM 2 AAAAAAAAAAAAAAAAA\n");
-	// PRINT3(icmp_hdr->checksum);
-	new_p->len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
+	new_p->len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr) + 64;
 	send_packet(new_p);
 }
 
@@ -467,34 +468,52 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
+			uint32_t interface_ip = inet_addr(get_interface_ip(m.interface));
+
+			// checl if ICMP echo request
+			if (ip_hdr->daddr == interface_ip) {
+				struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
+				struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
+				struct ether_header *eth_hdr = (struct ether_header *) m.payload;
+
+
+				if(icmp_hdr->type == ICMP_ECHO && icmp_hdr->code == 0) {
+					uint8_t d_mac[ETH_ALEN];
+					memcpy(d_mac, eth_hdr->ether_dhost, 6);
+
+					struct icmphdr new_icmp_hdr;
+					memset(&icmp_hdr, 0, sizeof(struct icmphdr));
+					new_icmp_hdr.code = 0;
+					new_icmp_hdr.type = ICMP_ECHOREPLY;
+					new_icmp_hdr.checksum = 0;
+					new_icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
+					new_icmp_hdr.un.echo.id = icmp_hdr->un.echo.id;
+					new_icmp_hdr.un.echo.sequence = icmp_hdr->un.echo.sequence;
+
+					icmp_echo_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), new_icmp_hdr);
+					continue;
+				}
+			}
+
 			//ttl
-			if(ip_hdr->ttl < 1) {
+			if(ip_hdr->ttl <= 1) {
 				printf("TTL:%d\n", ip_hdr->ttl);
 				// TODO: trimite mesaj ICMP cu time exceeded
 
-				struct ether_header *eth_hdr = (struct ether_header *) m.payload;
-				uint8_t d_mac[ETH_ALEN];
-				memcpy(d_mac, &eth_hdr->ether_dhost, 6);
-				memcpy(eth_hdr->ether_dhost, &eth_hdr->ether_shost, 6);
-				memcpy(eth_hdr->ether_shost, &eth_hdr->ether_dhost, 6);
-
 				struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
-				uint32_t dest_ip = ip_hdr->daddr;
-				ip_hdr->daddr = ip_hdr->saddr;
-				ip_hdr->saddr = dest_ip;
+				struct ether_header *eth_hdr = (struct ether_header *) m.payload;
 
-				struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-				icmp_hdr->code = 0;
-				icmp_hdr->type = 11;
-				icmp_hdr->checksum = 0;
-				unsigned long icmp_len = ip_hdr->tot_len - sizeof(struct iphdr);
-				icmp_hdr->checksum = icmp_checksum((uint16_t *)icmp_hdr, icmp_len);
+				uint8_t d_mac[ETH_ALEN];
+				memcpy(d_mac, eth_hdr->ether_dhost, 6);
 
-				ip_hdr->check = 0;
-				ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
-
+				struct icmphdr icmp_hdr;
+				memset(&icmp_hdr, 0, sizeof(struct icmphdr));
+				icmp_hdr.code = 0;
+				icmp_hdr.type = ICMP_TIME_EXCEEDED;
+				icmp_hdr.checksum = 0;
+				icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
 				 
-				send_packet(&m);
+				icmp_err_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), icmp_hdr);
 				continue;
 			} else {
 				ip_hdr->ttl--;
@@ -506,78 +525,23 @@ int main(int argc, char *argv[])
 				// TODO: trimite mesaj ICMP cu "Destination unreachable"
 				printf("!!!!!!!!!!!!!!!!!! LPM ROUTER E NUL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-
 				struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
 				struct ether_header *eth_hdr = (struct ether_header *) m.payload;
-				struct icmphdr *icmp_hdr1 = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + 16);
+				// struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header));
 
-				printf("AAAAAAAAAAAAAA MY CHECKSUM AAAAAAAAAAAAAAAAA\n");
-				PRINT3(icmp_hdr1->checksum);
-
-				//icmp_error(eth_hdr, icmp_hdr1, ip_hdr,
-				 		   //ICMP_DEST_UNREACH, ICMP_ECHOREPLY, m);
-
-				uint8_t d_mac[ETH_ALEN];
-				memcpy(d_mac, &eth_hdr->ether_dhost, 6);
-
-				//continue;
-				icmp_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)));
-				continue;
-				//struct ether_header *eth_hdr = (struct ether_header *) m.payload;
-				
-				memcpy(&eth_hdr->ether_dhost, &eth_hdr->ether_shost, 6);
-				memcpy(&eth_hdr->ether_shost, &d_mac, 6);
-
-				//struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
-				ip_hdr->daddr = ip_hdr->saddr;
-				ip_hdr->saddr = inet_addr(get_interface_ip(m.interface));
-
-
-				void *after_icmp = malloc(64);
-				memcpy(after_icmp, (m.payload + sizeof(struct ether_header) + sizeof(struct iphdr)), 64);
-				
-
-				// struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-
-
-				printf("Sizeof ether: %lu", sizeof(struct ether_header));
-				printf("Sizeof IP: %lu", sizeof(struct iphdr));
-				printf("Sizeof ICMP: %lu", sizeof(struct icmphdr));
-				
-				//m.len = sizeof(struct ether_header) + sizeof(struct iphdr) + 64;
-				
-				ip_hdr->protocol = IPPROTO_ICMP;
-				ip_hdr->tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr));
-				ip_hdr->ttl = 64;
 				struct icmphdr icmp_hdr;
-				// memset(&icmp_hdr, 0, sizeof(struct icmphdr));
-				icmp_hdr.code = 0;	
+				memset(&icmp_hdr, 0, sizeof(struct icmphdr));
+				icmp_hdr.code = 0;
 				icmp_hdr.type = ICMP_DEST_UNREACH;
-				
-
-				// PRINT3(icmp_hdr.checksum);
-				
 				icmp_hdr.checksum = 0;
 				icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
+
+				uint8_t d_mac[ETH_ALEN];
+				memcpy(d_mac, eth_hdr->ether_dhost, 6);
+
+				icmp_err_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), icmp_hdr);
+				continue;
 				
-				memcpy(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr), &icmp_hdr, sizeof(struct icmphdr));
-				struct icmphdr *icmp_hdr2 = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-
-
-				// icmp_hdr2->checksum = icmp_checksum((uint16_t *)icmp_hdr2, sizeof(struct icmphdr));
-				// memcpy((m.payload + sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr)), after_icmp, 64);
-
-
-				// struct icmphdr *icmp_hdr2 = (struct icmphdr *)(m.payload + sizeof(struct ether_header) + sizeof(struct iphdr));
-
-				// icmp_hdr2->checksum = icmp_checksum((uint16_t *)icmp_hdr2, sizeof(struct icmphdr));
-
-				
-				printf("AAAAAAAAAAAAAA MY CHECKSUM 2 AAAAAAAAAAAAAAAAA\n");
-				// PRINT3(icmp_hdr->checksum);
-				m.len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
-				// send_packet(&m);
-				// continue;
 			}
 			printf("LPM Router: ");
 			PRINT(LPM_router->next_hop);
