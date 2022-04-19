@@ -2,7 +2,7 @@
 #include "list.h"
 #include "./include/skel.h"
 #include <arpa/inet.h>
-// #include <linux/ip.h>
+#include <linux/ip.h>
 
 
 
@@ -182,7 +182,6 @@ void search_ip_ARP(struct arp_entry *arp_table, uint32_t ip, uint8_t *mac){
 int search_dynamic_ip_ARP(struct arp_entry *arp_table, int arp_table_len, uint32_t ip, uint8_t *mac) {
 	for(int i = 0; i < arp_table_len; i++) {
 		if(arp_table[i].ip == ip) {
-			// printf("AM GASITTTTTT CV IN SEARCH DYNAMIC");
 			memcpy(mac, &arp_table[i].mac, 6);
 			return 1;
 		}
@@ -208,12 +207,10 @@ void print_arp_table(struct arp_entry *arp_table, int len) {
 
 
 void enque_extended_pck(queue q, packet m) {
-	// printf("AICII VRRRRRRRRRRRRRRR 1 ");
 	packet *m_cpy = malloc(sizeof(packet));
 	DIE(m_cpy == NULL, "memory");
 
-	// memcpy(m_cpy, &m, sizeof(m));
-	memmove(m_cpy, &m, sizeof(m));
+	memcpy(m_cpy, &m, sizeof(m));
 
 	queue_enq(q, m_cpy);
 }
@@ -284,7 +281,6 @@ void add_arp_entry(struct arp_entry *arp_table, int *arp_table_len, struct arp_e
 		}
 	}
 
-	
 	arp_table[*arp_table_len] = *arp_entry;
 	(*arp_table_len)++;
 }
@@ -292,11 +288,9 @@ void add_arp_entry(struct arp_entry *arp_table, int *arp_table_len, struct arp_e
 void check_queue(queue q, struct arp_entry *arp_table, int arp_len,
 struct route_table_entry *rtable, int rtable_len) {
 
-	
 	if(queue_empty(q)) {
 		return;
 	}
-
 
 	packet *pck = (packet *)queue_peek(q);
 	int found = 0;
@@ -347,88 +341,6 @@ struct route_table_entry *rtable, int rtable_len) {
 		printf("Pentru primul pachet inca nu a venit raspunsul\n");
 	}
 	
-}
-void build_ethhdr(struct ether_header *eth_hdr, uint8_t *sha, uint8_t *dha, unsigned short type)
-{
-	memcpy(eth_hdr->ether_dhost, dha, ETH_ALEN);
-	memcpy(eth_hdr->ether_shost, sha, ETH_ALEN);
-	eth_hdr->ether_type = type;
-}
-
-
-void send_icmp_error(uint32_t daddr, uint32_t saddr, uint8_t *sha, uint8_t *dha, u_int8_t type, u_int8_t code, int interface)
-{
-
-	struct ether_header eth_hdr;
-	struct iphdr ip_hdr;
-	struct icmphdr icmp_hdr = {
-		.type = type,
-		.code = code,
-		.checksum = 0,
-	};
-
-
-	packet packet;
-	void *payload;
-
-	icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
-	printf("Funfctie\n");
-	PRINT3(icmp_hdr.checksum);
-
-
-	build_ethhdr(&eth_hdr, sha, dha, htons(ETHERTYPE_IP));
-	/* No options */
-	ip_hdr.version = 4;
-	ip_hdr.ihl = 5;
-	ip_hdr.tos = 0;
-	ip_hdr.protocol = IPPROTO_ICMP;
-	ip_hdr.tot_len = htons(sizeof(struct iphdr) + sizeof(struct icmphdr));
-	ip_hdr.id = htons(1);
-	ip_hdr.frag_off = 0;
-	ip_hdr.ttl = 64;
-	ip_hdr.check = 0;
-	ip_hdr.daddr = daddr;
-	ip_hdr.saddr = saddr;
-	ip_hdr.check = ip_checksum((void *)&ip_hdr, sizeof(struct iphdr));
-
-
-	icmp_hdr.checksum = 0;
-	icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
-		printf("Funfctie2\n");
-	PRINT3(icmp_hdr.checksum);
-
-	payload = packet.payload;
-	memcpy(payload, &eth_hdr, sizeof(struct ether_header));
-	payload += sizeof(struct ether_header);
-	memcpy(payload, &ip_hdr, sizeof(struct iphdr));
-	payload += sizeof(struct iphdr);
-	memcpy(payload, &icmp_hdr, sizeof(struct icmphdr));
-	packet.len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
-	packet.interface = interface;
-
-	send_packet(&packet);
-}
-
-
-void icmp_error(struct ether_header *eth_hdr,
-				struct icmphdr *icmp_hdr,
-				struct iphdr *ip_hdr,
-				u_int8_t type,
-				u_int8_t code,
-				packet m)
-{
-	// Send back the packet
-	uint32_t daddr = ip_hdr->saddr;
-	uint32_t saddr = inet_addr(get_interface_ip(m.interface));
-
-	// The mac source is my mac
-	uint8_t *sha = eth_hdr->ether_dhost;
-	uint8_t *dha = eth_hdr->ether_shost;
-
-	int interface = m.interface;
-
-	// Send an ICMP_REPLAY
-	send_icmp_error(daddr, saddr, sha, dha, type, code, interface);
 }
 
 
@@ -509,14 +421,8 @@ int cmpfunc (const void * a, const void * b) {
 		return compare;
 	else
 		return (ntohl(a_entry.prefix) - ntohl(b_entry.prefix));
-	// int compare = ntohl(a_entry.prefix) - ntohl(b_entry.prefix);
-	// if(compare != 0) {
-	// 	return compare;
-	// } else {
-	// 	compare = ntohl(a_entry.mask) - ntohl(b_entry.mask);
-	// 	return compare;
-	// }
 }
+
 
 
 
@@ -525,8 +431,83 @@ void update_send_packet(packet m){
 	// verific daca adresa ip a next hope-ului exista in ARP cache
 	memcpy(new_p, &m, sizeof(packet));
 	send_packet(new_p);
-	
 }
+
+
+void generate_send_arp(struct route_table_entry *LPM_router) {
+	packet arp_packet;
+	arp_packet.interface = LPM_router->interface;
+	arp_packet.len = sizeof(struct arp_header) + sizeof(struct ethhdr);
+	memset(arp_packet.payload, 0, 1600);
+
+	uint8_t *broadcast_addr = malloc(ETH_ALEN);
+	hwaddr_aton("ff:ff:ff:ff:ff:ff", broadcast_addr);
+
+	/**** 1. Generare antet Ethernet ****/
+	struct ether_header* eth_hdr_arp = (struct ether_header *) arp_packet.payload;
+	eth_hdr_arp->ether_type = ntohs(ETHERTYPE_ARP);
+	get_interface_mac(LPM_router->interface, eth_hdr_arp->ether_shost); //sursa
+	memcpy(eth_hdr_arp->ether_dhost, broadcast_addr, 6); //destinatie
+
+	/**** 2. Generare antet ARP ****/
+	struct arp_header* arp_hdr = (struct arp_header*) (arp_packet.payload + sizeof(struct ether_header));
+
+	arp_hdr->op = htons(ARPOP_REQUEST); // 1 pt REQUEST
+	arp_hdr->ptype = htons(2048); // aka 0x0800
+	arp_hdr->plen = 4; // pt ca e adresa IPv*4*
+	arp_hdr->htype = htons(1); // Ethernet 
+	arp_hdr->hlen = 6; // Adresa MAC (xx:xx:xx:xx:xx:xx) -> 6 octeti
+	
+	// sursa
+	get_interface_mac(LPM_router->interface, arp_hdr->sha);
+	arp_hdr->spa = inet_addr(get_interface_ip(LPM_router->interface));
+
+	// setam campurile pentru destinatie
+	arp_hdr->tpa = LPM_router->next_hop;
+	memcpy(arp_hdr->tha, broadcast_addr, 6);
+	
+	printf("Inainte sa trimitem pachetul de request, avem asa:\n");
+	printf( "Interface: %d", arp_packet.interface);
+	printf( "Len: %d", arp_packet.len);
+	print_eth_hdr(eth_hdr_arp);
+	print_arp_hdr(arp_hdr);
+	printf("Trimit ARP REQUST");
+	send_packet(&arp_packet);
+}
+
+void generate_reply(packet m, uint8_t *dest_mac, uint8_t *source_mac, uint32_t ip_daddr, uint32_t ip_saddr) {
+	struct arp_header* arp_hdr = (struct arp_header*) (m.payload + sizeof(struct ether_header));
+	
+	memset(m.payload, 0, 1600);
+
+	arp_hdr->op = htons(ARPOP_REPLY); // 2 pt REPLY
+	arp_hdr->ptype = htons(2048); // aka 0x0800
+	arp_hdr->plen = 4; // pt ca e adresa IPv*4*
+	arp_hdr->htype = htons(1); // Ethernet 
+	arp_hdr->hlen = 6; // Adresa MAC (xx:xx:xx:xx:xx:xx) -> 6 octeti
+	// arp_hdr->op = htons(ARPOP_REPLY);
+
+
+	memcpy(arp_hdr->sha, source_mac, 6);
+	arp_hdr->spa = ip_saddr;
+	
+	memcpy(arp_hdr->tha, dest_mac, 6);
+	arp_hdr->tpa = ip_daddr;
+
+	struct ether_header* eth_hdr = (struct ether_header*) (m.payload);
+	eth_hdr->ether_type = htons(ETHERTYPE_ARP);
+	memcpy(eth_hdr->ether_shost, source_mac, 6);
+	memcpy(eth_hdr->ether_dhost, dest_mac, 6);
+	
+
+	printf("Am primit un REQUEST, iar asta e structura pachetului inainte sa trimitem REPLY\n");
+	print_eth_hdr(eth_hdr);
+	print_arp_hdr(arp_hdr);
+
+	send_packet(&m);
+
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -536,6 +517,8 @@ int main(int argc, char *argv[])
 
 	// Do not modify this line
 	init(argc - 2, argv + 2);
+
+	
 	struct route_table_entry *rtable = malloc(sizeof(struct route_table_entry) * 1000000);
 	DIE(rtable == NULL, "memory");
 
@@ -543,17 +526,9 @@ int main(int argc, char *argv[])
 
 	qsort(rtable, rtable_len, sizeof(struct route_table_entry), cmpfunc);
 
-	for(int i = 0; i < rtable_len; i++) {
-		PRINT(rtable[i].prefix);
-		PRINT(rtable[i].next_hop);
-		PRINT(rtable[i].mask);
-		printf(" %d\n", rtable[i].interface);
-	}
-
-
-
 	struct arp_entry *arp_table = malloc(sizeof(struct arp_entry) * 100);
-	int arp_table_len = parse_arp_table("./arp_table.txt", arp_table);
+	int arp_table_len = 0;
+	// parse_arp_table("./arp_table.txt", arp_table);
 	DIE(arp_table == NULL, "memory");
 
 	queue q;
@@ -565,11 +540,7 @@ int main(int argc, char *argv[])
 	while (1) {
 		rc = get_packet(&m);
 		DIE(rc < 0, "get_packet");
-		/* TODO */
-		
-		// print_arp_table(arp_table, arp_table_len);
 
-		// print_packet_info(m);
 		/**************** Forwarding ****************/
 
 		/******** Extragem ethernet header ********/
@@ -582,10 +553,8 @@ int main(int argc, char *argv[])
 		printf("Mac interfetei pe care a fost trimis pachetul:\n");
 		PRINT2(packet_interface_mac);
 
-
-
-
 		/******** Daca e protocol IPv4 ********/
+		
 		if(ntohs(eth->ether_type) == ETHERTYPE_IP) {
 		if(!compare_MAC(eth->ether_dhost, broadcast_addr) && !compare_MAC(eth->ether_dhost, packet_interface_mac)) {
 			PRINT2(eth->ether_dhost);
@@ -623,8 +592,6 @@ int main(int argc, char *argv[])
 					new_icmp_hdr.type = ICMP_ECHOREPLY;
 					new_icmp_hdr.checksum = 0;
 					new_icmp_hdr.checksum = icmp_checksum((uint16_t *)&icmp_hdr, sizeof(struct icmphdr));
-					// new_icmp_hdr.un.echo.id = icmp_hdr->un.echo.id;
-					// new_icmp_hdr.un.echo.sequence = icmp_hdr->un.echo.sequence;
 
 					icmp_echo_send(m, eth_hdr->ether_shost, d_mac, ip_hdr->saddr, inet_addr(get_interface_ip(m.interface)), new_icmp_hdr);
 					continue;
@@ -659,12 +626,10 @@ int main(int argc, char *argv[])
 			/******** Cautare in tabela de rutare ********/
 			struct route_table_entry* LPM_router = LPM(ip_hdr->daddr, rtable, rtable_len);
 			if (LPM_router == NULL) {
-				// TODO: trimite mesaj ICMP cu "Destination unreachable"
 				printf("!!!!!!!!!!!!!!!!!! LPM ROUTER E NUL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
 				struct iphdr *ip_hdr = (struct iphdr *)(m.payload + sizeof(struct ether_header));
 				struct ether_header *eth_hdr = (struct ether_header *) m.payload;
-				// struct icmphdr *icmp_hdr = (struct icmphdr *)(m.payload + sizeof(struct ether_header));
 
 				struct icmphdr icmp_hdr;
 				memset(&icmp_hdr, 0, sizeof(struct icmphdr));
@@ -680,7 +645,6 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
-			// update_send_packet();
 
 			printf("LPM Router: ");
 			PRINT(LPM_router->next_hop);
@@ -688,9 +652,6 @@ int main(int argc, char *argv[])
 			printf("Interfata LPM Router: ");
 			printf("%d", LPM_router->interface);
 
-			/******** Actualizare checksum ********/
-			// ip_hdr->check = 0;
-			// ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
 
 			/******** Rescriere L2 ********/
 
@@ -699,92 +660,35 @@ int main(int argc, char *argv[])
 			// verific daca adresa ip a next hope-ului exista in ARP cache
 			if(search_dynamic_ip_ARP(arp_table, arp_table_len, LPM_router->next_hop, next_hop_mac) == 1) {
 
-			// rescriu adresa sursa ca fiind adresa MAC a interfetei routerului gasit din tabela
-			// uint8_t *router_mac = malloc(sizeof(ETH_ALEN));
 			get_interface_mac(LPM_router->interface, eth->ether_shost);
 
-			// printf("Mac-ul routerului:\n");
-			// PRINT2(router_mac);
+			memcpy(eth->ether_dhost, next_hop_mac, 6);
 
-			// memcpy(eth->ether_shost, router_mac , 6);
 
-			// printf("Source host pentru ethernet inlocuit cu mac-ul routerului:\n");
-			// PRINT2(eth->ether_shost);
+			m.interface = LPM_router->interface;
+			printf("Sending package from: \n");
+			PRINT(ip_hdr->saddr);
+			PRINT2(eth->ether_shost);
+			printf(" to:\n");
+			PRINT(ip_hdr->daddr);
+			PRINT2(eth->ether_dhost);
+			printf(" on interface: %d", m.interface);
 
-				// daca exista
-				// printf("Adresa IP exista in cache ARP\n");
-				// printf("Mac-ul next hop-ului:\n");
-				// PRINT2(next_hop_mac);
-
-				// inlocuim destinatia din Ethernet
-				memcpy(eth->ether_dhost, next_hop_mac, 6);
-
-				// printf("Destination host pentru ethernet inlocuit cu mac-ul next hope-ului:\n");
-				// PRINT2(eth->ether_dhost);
-
-				m.interface = LPM_router->interface;
-				printf("Sending package from: \n");
-				PRINT(ip_hdr->saddr);
-				PRINT2(eth->ether_shost);
-				printf(" to:\n");
-				PRINT(ip_hdr->daddr);
-				PRINT2(eth->ether_dhost);
-				printf(" on interface: %d", m.interface);
-				// update_send_packet(m);
-
-				send_packet(&m);
-				continue;
+			send_packet(&m);
+			continue;
 			} else {
-				continue;
-				// daca intrarea nu exista
 				printf("TREBUIE SA FAC UN REQUEST PT CA INTRAREA NU EXISTA");
-				print_arp_table(arp_table, arp_table_len);
 				enque_extended_pck(q, m);
-				// TODO (In progress): generare pachet de tip ARP
-				packet arp_packet;
-				arp_packet.interface = LPM_router->interface;
-				arp_packet.len = m.len;
-				/**** 1. Generare antet Ethernet ****/
-				struct ether_header* eth_hdr_arp = (struct ether_header *) arp_packet.payload;
-				eth_hdr_arp->ether_type = ntohs(ETHERTYPE_ARP);
-				// rescriu adresa sursa + destinatia pt antetul de Ethernet
-				get_interface_mac(LPM_router->interface, eth_hdr_arp->ether_shost);
-				memcpy(eth_hdr_arp->ether_dhost, broadcast_addr, 6);
-		
-				/**** 2. Generare antet ARP ****/
-				struct arp_header* arp_hdr = (struct arp_header*) (arp_packet.payload + sizeof(struct ether_header));
-				arp_hdr->op = htons(ARPOP_REQUEST); // 1 pt REQUEST
-				arp_hdr->ptype = htons(2048); // aka 0x0800
-				arp_hdr->plen = 4; // pt ca e adresa IPv*4*
-				arp_hdr->htype = htons(1); // Ethernet 
-				arp_hdr->hlen = 6; // Adresa MAC (xx:xx:xx:xx:xx:xx) -> 6 octeti
-				// setam campurile pentru sursa
-				get_interface_mac(LPM_router->interface, arp_hdr->sha);
-				// TODO: DE CONVERTIT STRING IN ADRESA IP
-
-				in_addr_t adresaIpSursa = inet_addr(get_interface_ip(LPM_router->interface));
-				memcpy(&arp_hdr->spa, &adresaIpSursa, sizeof(uint32_t));
-				// setam campurile pentru destinatie
-				arp_hdr->tpa = LPM_router->next_hop;
-				/*** In caz de request, nu stim adresa MAC a next hop, asta vrem sa aflam, deci ii punem broadcast ***/
-				memcpy(arp_hdr->tha, broadcast_addr, 6);
-				arp_packet.interface = LPM_router->interface;
-				printf("Inainte sa trimitem pachetul de request, avem asa:\n");
-				printf( "Interface: %d", arp_packet.interface);
-				printf( "Len: %d", arp_packet.len);
-				print_eth_hdr(eth_hdr_arp);
-				print_arp_hdr(arp_hdr);
-				printf("Trimit ARP REQUST");
-				send_packet(&arp_packet);
+				generate_send_arp(LPM_router);
 				continue;
 			}
 		}
 
 		// Daca e protocol ARP
 		
-		/*else if (ntohs(eth->ether_type) == ETHERTYPE_ARP) {
+		else if (ntohs(eth->ether_type) == ETHERTYPE_ARP) {
 			printf("Protocol ARP\n");
-			continue;
+			// continue;
 			// Adaugare ARP reply in cache-ul local
 			// Daca e un REPLY 
 			struct arp_header* arp_hdr = (struct arp_header*) (m.payload + sizeof(struct ether_header));
@@ -807,7 +711,6 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
-
 			// Daca e un REQUEST
 			if(arp_hdr->op == htons(1)) {
 				printf("++++++++Am primit un REQUEST+++++++\n");
@@ -815,51 +718,14 @@ int main(int argc, char *argv[])
 				print_arp_hdr(arp_hdr);
 				
 				// trebuie sa ii returnez adresa MAC
-				arp_hdr->op = htons(2);
-				// copii pentru adresele sursa
-				uint8_t sha_cpy[ETH_ALEN];
-				memcpy(sha_cpy, arp_hdr->sha, 6);
-				uint32_t spa_cpy = arp_hdr->spa;
 
-
-				// updatam pentru urmatorul pas (schimbam adresele sursa)
-				// punem in SHA adresa MAC pe care doream sa o aflam
-
-				get_interface_mac(m.interface, arp_hdr->sha);
-				arp_hdr->spa = arp_hdr->tpa;
-
-				// updatam pentru urmatorul pas (schimbam adresele destinatie)
-				memcpy(arp_hdr->tha, sha_cpy, 6);
-				arp_hdr->tpa = spa_cpy;
-
-				// NU uitam sa updatam si Ethernet Header
-				struct ether_header* eth_hdr = (struct ether_header *) m.payload;
-				eth_hdr->ether_type = ntohs(ETHERTYPE_ARP);
-				// setam adresa MAC a sursei (locul in care ne aflam in acest moment)
-				memcpy(eth_hdr->ether_shost, arp_hdr->sha, 6);
-				// setam adresa MAC a destinatiei unde vom trimite pachetul (acolo de unde am primti REQUEST)
-				memcpy(eth_hdr->ether_dhost, sha_cpy, 6);
-
-
-				printf("Am primit un REQUEST, iar asta e structura pachetului inainte sa trimitem REPLY\n");
-				print_eth_hdr(eth_hdr);
-				print_arp_hdr(arp_hdr);
-				
-				// Adaugare in cache
-				struct arp_entry *arp_new_entry = malloc(sizeof(struct arp_entry));
-				DIE(arp_new_entry == NULL, "memory");
-				// Setam adresa IP a routerului care ne-a furnizat MAC-ul lui, datorita unei cereri anterioare
-				arp_new_entry->ip = arp_hdr->spa;
-				memcpy(arp_new_entry->mac, arp_hdr->sha, 6);
-
-				add_arp_entry(arp_table, &arp_table_len, arp_new_entry);
-				
-				send_packet(&m);
+				uint8_t found_MAC[ETH_ALEN];
+				get_interface_mac(m.interface, found_MAC);
+				generate_reply(m, arp_hdr->sha, found_MAC , arp_hdr->spa, arp_hdr->tpa);
 				continue;
 			}
-			
-			
-		}*/
+		
+		}
 		
 	}
 	free(arp_table);
