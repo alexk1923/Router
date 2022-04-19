@@ -58,39 +58,22 @@ int binarySearch(struct route_table_entry* rtable, uint32_t searched_ip, int lef
         if ((searched_ip & rtable[mid].mask) == rtable[mid].prefix) {
 			// PRINT((searched_ip & rtable[mid].mask));
 			// PRINT(rtable[mid].prefix);
-			int found_max_mask = 0;
-			int final_pos = mid + 1;
 			printf("AAAAAAAAAAAAAAAA RUTAR:\n\n");
 			PRINT(rtable[mid].prefix);
 			PRINT(rtable[mid].next_hop);
 			PRINT(rtable[mid].mask);
 			printf(" %d\n", rtable[mid].interface);
 
-			int last_correct = mid;
-			while(found_max_mask == 0) {
-				// printf("lalalal");
-				if((searched_ip & rtable[final_pos].mask) == rtable[final_pos].prefix) {
-					last_correct = final_pos;
-					
-				} else {
-					if(rtable[final_pos].mask == rtable[last_correct].mask) {
-						found_max_mask = 1;
-					}
-				}
-				final_pos++;
-			}
-			printf("BBBBBBBBBB RUTAR:\n\n");
-			PRINT(rtable[last_correct].prefix);
-			PRINT(rtable[last_correct].next_hop);
-			PRINT(rtable[last_correct].mask);
-			return last_correct;
+			return mid;
 		}
         
 		
-        if (ntohl(searched_ip & rtable[mid].mask) > ntohl(rtable[mid].prefix)) 
+        if (ntohl(searched_ip & rtable[mid].mask) > ntohl(rtable[mid].prefix)) {
             return binarySearch(rtable, searched_ip, mid + 1, right);
- 
-        return binarySearch(rtable, searched_ip, left, mid - 1);
+		}
+		else {
+        	return binarySearch(rtable, searched_ip, left, mid - 1);
+		}
     }
  
     // We reach here when element is not
@@ -125,129 +108,58 @@ struct route_table_entry* LPM(uint32_t dest_ip, struct route_table_entry* rtable
 	// PRINT(rtable[found].prefix);
 	// printf("****END OF LPM*******");
 
+	int found = binarySearch(rtable, dest_ip, 0, rtable_len - 1);
+	if(found == -1) {
+		return NULL;
+	}
+	printf("--------------------FOUND = %d ----------------", found);
+	return &rtable[found];
+
+
 	int left = 0;
 	int right = rtable_len - 1;
-	int found = -1;
+	found = -1;
 	printf("left:%d\n", left);
 	printf("right:%d\n", right);
 	printf("Dest IP:\n");
 	PRINT(dest_ip);
 	 while (left <= right && found == -1) {
         int mid = left + (right - left) / 2;
-				if(mid == 2) {
-			printf("Am ajuns la 2");
-		}
-				if(mid == 1) {
-			printf("Am ajuns la 1");
-		}
 			printf("Mid = %d\n", mid);
-
 			PRINT(rtable[mid].prefix);
 			PRINT(rtable[mid].next_hop);
 			PRINT(rtable[mid].mask);
-
 			PRINT((dest_ip & rtable[mid].mask));
 			PRINT(rtable[mid].prefix);
 		
         if ((dest_ip & rtable[mid].mask) == rtable[mid].prefix) {
 			PRINT((dest_ip & rtable[mid].mask));
 			PRINT(rtable[mid].prefix);
-			int found_max_mask = 0;
-			int final_pos = mid + 1;
 			// printf("AAAAAAAAAAAAAAAA RUTAR:\n\n");
 			// PRINT(rtable[mid].prefix);
 			// PRINT(rtable[mid].next_hop);
 			// PRINT(rtable[mid].mask);
 			// printf(" %d\n", rtable[mid].interface);
 
-			int last_correct = mid;
-
-			int curr_pos = mid + 1;
-			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
-				printf("LA");
-				
-				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
-					printf("Caz speical nr 0\n");
-					last_correct = curr_pos;
-					PRINT(rtable[curr_pos].prefix);
-					PRINT(rtable[curr_pos].next_hop);
-					PRINT(rtable[curr_pos].mask);
-					PRINT((dest_ip & rtable[curr_pos].mask));
-					PRINT(rtable[curr_pos].prefix);
-					// break;
-				}
-				curr_pos++;
-			}
-			// while(found_max_mask == 0) {
-			// 	// printf("lalalal");
-			// 	if((dest_ip & rtable[final_pos].mask) == rtable[final_pos].prefix) {
-			// 		last_correct = final_pos;
-					
-			// 	} else {
-			// 		if(rtable[final_pos].mask == rtable[last_correct].mask) {
-			// 			found_max_mask = 1;
-			// 		}
-			// 	}
-			// 	final_pos++;
-			// }
-			// printf("BBBBBBBBBB RUTAR:\n\n");
-			// PRINT(rtable[last_correct].prefix);
-			// PRINT(rtable[last_correct].next_hop);
-			// PRINT(rtable[last_correct].mask);
-			found = last_correct;
+			found = mid;
 			break;
 			printf(" found = %d", found);
 		}
-            
+
         if (ntohl(dest_ip & rtable[mid].mask) > ntohl(rtable[mid].prefix)) {
-			int curr_pos = mid + 1;
-			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
-				
-				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
-					printf("Caz speical nr 1\n");
-					found = curr_pos;
-					PRINT(rtable[curr_pos].prefix);
-					PRINT(rtable[curr_pos].next_hop);
-					PRINT(rtable[curr_pos].mask);
-					PRINT((dest_ip & rtable[curr_pos].mask));
-					PRINT(rtable[curr_pos].prefix);
-					// break;
-				}
-				curr_pos++;
-			}
             left = mid + 1;
 		} else {
-			
-			int curr_pos = mid + 1;
-			while(rtable[curr_pos].mask != rtable[curr_pos - 1].mask) {
-				
-				if ((dest_ip & rtable[curr_pos].mask) == rtable[curr_pos].prefix) {
-					printf("Caz speical nr 2\n");
-					found = curr_pos;
-					PRINT(rtable[curr_pos].prefix);
-					PRINT(rtable[curr_pos].next_hop);
-					PRINT(rtable[curr_pos].mask);
-					PRINT((dest_ip & rtable[curr_pos].mask));
-					PRINT(rtable[curr_pos].prefix);
-					// break;
-				}
-				curr_pos++;
-			}
-
 			right = mid - 1;
 		}
     }
 
 	// int found = binarySearch(rtable, dest_ip, 0, rtable_len - 1);
-	printf(" found = %d", found);
-	fflush(stdout);
 	if(found == -1) {
 		return NULL;
 	}
 	printf("--------------------FOUND = %d ----------------", found);
 	return &rtable[found];
 }
-
 
 
 
@@ -592,14 +504,18 @@ void ip_checksumRFC1642(struct iphdr *ip_hdr) {
 int cmpfunc (const void * a, const void * b) {
 	struct route_table_entry a_entry = *(struct route_table_entry *)a;
 	struct route_table_entry b_entry = *(struct route_table_entry *)b;
-
-	int compare = ntohl(a_entry.prefix) - ntohl(b_entry.prefix);
-	if(compare != 0) {
+	int compare = (ntohl(a_entry.mask) - ntohl(b_entry.mask));
+	if(compare != 0)
 		return compare;
-	} else {
-		compare = ntohl(a_entry.mask) - ntohl(b_entry.mask);
-		return compare;
-	}
+	else
+		return (ntohl(a_entry.prefix) - ntohl(b_entry.prefix));
+	// int compare = ntohl(a_entry.prefix) - ntohl(b_entry.prefix);
+	// if(compare != 0) {
+	// 	return compare;
+	// } else {
+	// 	compare = ntohl(a_entry.mask) - ntohl(b_entry.mask);
+	// 	return compare;
+	// }
 }
 
 
@@ -737,7 +653,7 @@ int main(int argc, char *argv[])
 				continue;
 			} else {
 				ip_hdr->ttl--;
-				// ip_checksumRFC1642(ip_hdr);
+				ip_checksumRFC1642(ip_hdr);
 			}
 
 			/******** Cautare in tabela de rutare ********/
@@ -773,8 +689,8 @@ int main(int argc, char *argv[])
 			printf("%d", LPM_router->interface);
 
 			/******** Actualizare checksum ********/
-			ip_hdr->check = 0;
-			ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
+			// ip_hdr->check = 0;
+			// ip_hdr->check = ip_checksum((void *) ip_hdr, sizeof(struct iphdr));
 
 			/******** Rescriere L2 ********/
 
@@ -807,14 +723,15 @@ int main(int argc, char *argv[])
 				// PRINT2(eth->ether_dhost);
 
 				m.interface = LPM_router->interface;
-				// printf("Sending package from: \n");
-				// PRINT(ip_hdr->saddr);
-				// PRINT2(eth->ether_shost);
-				// printf(" to:\n");
-				// PRINT(ip_hdr->daddr);
-				// PRINT2(eth->ether_dhost);
-				// printf(" on interface: %d", m.interface);
+				printf("Sending package from: \n");
+				PRINT(ip_hdr->saddr);
+				PRINT2(eth->ether_shost);
+				printf(" to:\n");
+				PRINT(ip_hdr->daddr);
+				PRINT2(eth->ether_dhost);
+				printf(" on interface: %d", m.interface);
 				// update_send_packet(m);
+
 				send_packet(&m);
 				continue;
 			} else {
