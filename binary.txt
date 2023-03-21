@@ -1,0 +1,74 @@
+Setting up interface: rr-0-1
+Setting up interface: r-0
+Setting up interface: r-1
+~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:03
+Protocol ARP
+~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:03
+Invalid L2
+~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:03
+Protocol IPv4
+!!!!!!!!!!!!!!!!!!!!!!!RFC1642!!!!!!!!!!!!!!!192.168.2.0 192.168.2.0 AAAAAAAAAAAAAAAA RUTAR:
+
+192.168.2.0 192.168.2.2 255.255.254.0  2
+lalalallalalalBBBBBBBBBB RUTAR:
+
+192.168.2.0 192.168.2.2 255.255.255.0 --------------------FOUND = 42097 ----------------AM GASITTTTTT CV IN SEARCH DYNAMIC~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:02
+Protocol ARP
+~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:02
+Invalid L2
+~~~~~~~~~Tabela ARP~~~~~~~~~~~~~~~~~~~
+192.168.0.2 _MAC: de:ad:be:ef:00:00
+192.168.1.2 _MAC: de:ad:be:ef:00:01
+192.168.2.2 _MAC: de:ad:be:ef:00:02
+192.168.3.2 _MAC: de:ad:be:ef:00:03
+192.0.1.1 _MAC: ca:fe:ba:be:00:01
+192.0.1.2 _MAC: ca:fe:ba:be:01:00
+Mac interfetei pe care a fost trimis pachetul:
+MAC: de:fe:c8:ed:01:02
+Protocol IPv4
+!!!!!!!!!!!!!!!!!!!!!!!RFC1642!!!!!!!!!!!!!!!192.168.2.0 192.168.2.0 AAAAAAAAAAAAAAAA RUTAR:
+
+192.168.2.0 192.168.2.2 255.255.254.0  2
+lalalallalalallalalalBBBBBBBBBB RUTAR:
+
+192.168.3.0 192.168.3.2 255.255.255.0 --------------------FOUND = 42098 ----------------AM GASITTTTTT CV IN SEARCH DYNAMIC

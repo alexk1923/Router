@@ -1,0 +1,91 @@
+/* Kullman Robert Alexandru 323CA */
+
+
+#Info
+
+Programul implementeaza procesul de dirijare a pachetelor dintr-un router.
+
+# Despre cod
+
+ - Initializarea consta in alocarea memoriei pentru principalele structuri
+folosite: tabela de rutare, tabela ARP si coada de pachete. Se sorteaza tabela
+de rutare pe baza mastii si a prefixului intrarilor.
+ - Restul programului se desfasoara intr-un while infinit in care se asteapta
+primirea unui pachet, urmand interpretarea acestuia.
+ * Daca este un pachet de tip IPv4
+	- procesul de validare a nivelului 2 (destinatia trebuie sa fie routerul
+        curent sau adresa de broadcast - pachetul e destinat tuturor)
+	- suma de control
+	* Daca este un ICMP echo request
+		- se creeaza un nou header de tip ICMP
+		- se apeleaza functia *icmp_echo_send* care va inlocui campurile
+		  corespunzatoare si trimite inapoi reply-ul catre sursa
+	* Verificam daca trebuie trimis un pachet ICMP care sa identifice eroarea
+        pentru "time exceeded" sau "destination unreachable".
+		- daca TTL <= 1, se creeaza un nou header ICMP de type 11 si se apeleaza
+		  functia *icmp_err_send* care va inlocui campurile corespunzatoare si va
+  		  trimite pachetul inapoi
+		- daca nu exista un next_hop si nu putem ajunge la destinatie, se va proceda
+		  asemanator cu situatia de la TTL si se va apela aceeasi functie
+		  *icmp_err_send*, cu noul header de ICMP
+	- Functia *icmp_err_send* va copia, de asemenea, primii 64 de octeti din
+	  pachetul original, de deasupra antetului IP.
+	- Urmatorul pas este sa verificam daca se cunoaste MAC-ul pentru urmatoarea
+	  destinatie a pachetului. Parcurgem ARP Table.
+	* In cazul in care exista
+		- se schimba interfata pe care va fi trimis pachetul si campurile Ethernet
+	* daca nu exista
+		- se adauga pachetul in coada de pachete ce vor astepta a fi trimise
+		- se apeleaza functia *arp_request*
+			- *arp_request* creeaza un nu pachet de tip ARP si initializeaza campurile
+			  cu valorile corespunzatoare
+			- se genereaza un header de Ethernet si un header ARP
+			- adresa MAC destinatie va fi cea de broadcast, intrucat se doreste adresa
+			  MAC a destinatiei, deci pachetul va fi adresat tuturor, raspunsul urmand
+			  a veni inapoi de la router
+* Daca e un pachet de tip ARP
+	* Daca e reply
+		- se adauga noua intrare in tabelul ARP si se apeleaza functia de *check_queue*
+			- functia *check_queue* va extrage primul pachet si va verifica daca
+			  adresa IP pe care acesta urmeaza a fi trimis este egala cu o adresa
+		        IP din tabela ARP.
+				* daca se gaseste o corespondenta
+					- se inlocuieste campul de MAC, pe baza intrarii din ARP Table
+					- se scoate pachetul din coada
+					- se trimite pachetul pe interfata corecta
+				* daca nu, se printeaza un mesaj
+	* Daca e request
+		- se retine adresa MAC a interfetei care a primit pachetul si se apeleaza
+		  functia de reply: *arp_reply*
+			- *arp_reply* va modifica headerele de Ethernet si ARP. Se modifica adresa
+			  MAC sursa cu adresa MAC gasita pe interfata (fiind si cea cautata de
+			  requestul in cauza)
+
+
+* Algoritmul de LPM este implementat pe baza unui binary search in tabela de
+  rutare, sortata in etapa initiala, de dinaintea intrarii in loop-ul infinit.
+  Este comparat rezultatul aplicarii mastii asupra IP-ului destinatie si
+  prefixul intrarii.
+
+* Functia de modificare icrementala a checksum-ului este bazata pe RFC1642 si
+  consta in aplicarea unei formule in functie de suma de control anterioara si
+  campul care s-a schimbat, in acest caz, TTL-ul.
+
+
+-------------------------------------------------------------------------------
+
+Problemele intampinare pe parcursul implementarii au fost in trimiterea unor
+pachete cu intarziere, din cauza unor erori in cod: erori de memorie sau
+folosirea unor valori neinitializate (de aceea se foloseste si memset-ul cu 0).
+De asemenea, intelegerea transmiterii pachetelor a fost dificila la inceput,
+dar mai facila odata cu inspectarea acestora in wireshark
+
+Probleme au mai fost si din cauza ordinii implementarii, intrucat anumite teste
+nu puteau trece (cel putin in cazul meu) daca nu erau implementate, de exemplu
+ARP + ICMP.
+
+FOARTE multe ore investite in aceasta tema, in unele zile mai mult in debug
+decat in scrierea codului propriu-zis
+
+Avantaj: intelegerea buna a transmiterii pachetelor intre host-uri si routere.
+		
